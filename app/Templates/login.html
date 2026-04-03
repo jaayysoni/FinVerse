@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Finance System Login</title>
+    
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+    <div class="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
+
+        <!-- Title -->
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-2">
+            Finance Tracker
+        </h1>
+        <p class="text-center text-gray-500 mb-6">
+            Select your role to continue
+        </p>
+
+        <!-- Role Selection Form -->
+        <form action="/dashboard" method="get" class="space-y-4">
+
+            <!-- Admin -->
+            <button 
+                type="submit" 
+                name="role" 
+                value="admin"
+                class="w-full py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+            >
+                Login as Admin
+            </button>
+
+            <!-- Analyst -->
+            <button 
+                type="submit" 
+                name="role" 
+                value="analyst"
+                class="w-full py-3 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition"
+            >
+                Login as Analyst
+            </button>
+
+            <!-- Viewer -->
+            <button 
+                type="submit" 
+                name="role" 
+                value="viewer"
+                class="w-full py-3 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600 transition"
+            >
+                Login as Viewer
+            </button>
+
+        </form>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center text-sm text-gray-400">
+            <p>Demo role-based access system</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
