@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<div class="max-w-7xl mx-auto p-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-800">
+            Admin Dashboard
+        </h1>
+        <a href="/" class="text-sm text-red-500 hover:underline">
+            Logout
+        </a>
+    </div>
+
+    <!-- ================= SUMMARY ================= -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow">
+            <p class="text-gray-500">Total Income</p>
+            <h2 class="text-xl font-bold text-green-600">
+                ₹ {{ summary.total_income }}
+            </h2>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow">
+            <p class="text-gray-500">Total Expense</p>
+            <h2 class="text-xl font-bold text-red-600">
+                ₹ {{ summary.total_expense }}
+            </h2>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl shadow">
+            <p class="text-gray-500">Balance</p>
+            <h2 class="text-xl font-bold text-blue-600">
+                ₹ {{ summary.balance }}
+            </h2>
+        </div>
+    </div>
+
+    <!-- ================= ANALYTICS ================= -->
+    <div class="grid grid-cols-2 gap-6 mb-6">
+
+        <!-- Category Breakdown -->
+        <div class="bg-white p-4 rounded-xl shadow">
+            <h2 class="font-semibold mb-3">Category Breakdown</h2>
+            {% for c in category_breakdown %}
+                <div class="flex justify-between border-b py-1 text-sm">
+                    <span>{{ c.category }}</span>
+                    <span>₹ {{ c.total }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Monthly Summary -->
+        <div class="bg-white p-4 rounded-xl shadow">
+            <h2 class="font-semibold mb-3">Monthly Summary</h2>
+            {% for m in monthly_summary %}
+                <div class="flex justify-between border-b py-1 text-sm">
+                    <span>{{ m.month }}</span>
+                    <span>₹ {{ m.total }}</span>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+
+    <!-- ================= RECENT ================= -->
+    <div class="bg-white p-4 rounded-xl shadow mb-6">
+        <h2 class="font-semibold mb-3">Recent Transactions</h2>
+        {% for r in recent_transactions %}
+            <div class="flex justify-between border-b py-1 text-sm">
+                <span>{{ r.date }} - {{ r.category }}</span>
+                <span>₹ {{ r.amount }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- ================= FILTER ================= -->
+    <div class="bg-white p-4 rounded-xl shadow mb-6">
+        <h2 class="font-semibold mb-3">Filter Transactions</h2>
+
+        <form method="get" action="/dashboard" class="grid grid-cols-4 gap-4">
+
+            <input type="hidden" name="role" value="admin">
+
+            <select name="type" class="border p-2 rounded">
+                <option value="">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+            </select>
+
+            <input type="text" name="category" placeholder="Category"
+                   class="border p-2 rounded">
+
+            <input type="date" name="start_date" class="border p-2 rounded">
+            <input type="date" name="end_date" class="border p-2 rounded">
+
+            <button class="col-span-4 bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                Apply Filters
+            </button>
+
+        </form>
+    </div>
+
+    <!-- ================= ADD ================= -->
+    <div class="bg-white p-4 rounded-xl shadow mb-6">
+        <h2 class="font-semibold mb-3">Add Transaction</h2>
+
+        <form method="post" action="/transactions/create" class="grid grid-cols-2 gap-4">
+
+            <input type="number" step="0.01" name="amount" placeholder="Amount"
+                   class="border p-2 rounded" required>
+
+            <select name="type" class="border p-2 rounded" required>
+                <option value="">Select Type</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+            </select>
+
+            <input type="text" name="category" placeholder="Category"
+                   class="border p-2 rounded" required>
+
+            <input type="date" name="date" class="border p-2 rounded" required>
+
+            <input type="text" name="notes" placeholder="Notes"
+                   class="border p-2 rounded col-span-2">
+
+            <button class="col-span-2 bg-green-500 text-white py-2 rounded hover:bg-green-600">
+                Add Transaction
+            </button>
+
+        </form>
+    </div>
+
+    <!-- ================= TABLE ================= -->
+    <div class="bg-white p-4 rounded-xl shadow">
+        <h2 class="font-semibold mb-3">All Transactions</h2>
+
+        <table class="w-full border-collapse text-sm">
+
+            <thead>
+                <tr class="bg-gray-200 text-left">
+                    <th class="p-2">Amount</th>
+                    <th class="p-2">Type</th>
+                    <th class="p-2">Category</th>
+                    <th class="p-2">Date</th>
+                    <th class="p-2">Notes</th>
+                    <th class="p-2">Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for t in transactions %}
+                <tr class="border-t">
+                    <td class="p-2">₹ {{ t.amount }}</td>
+                    <td class="p-2">{{ t.type }}</td>
+                    <td class="p-2">{{ t.category }}</td>
+                    <td class="p-2">{{ t.date }}</td>
+                    <td class="p-2">{{ t.notes }}</td>
+
+                    <td class="p-2 space-x-2">
+
+                        <!-- EDIT -->
+                        <a href="/transactions/edit/{{ t.id }}?role=admin"
+                           class="text-blue-500 hover:underline text-sm">
+                            Edit
+                        </a>
+
+                        <!-- DELETE -->
+                        <form method="post" action="/transactions/delete/{{ t.id }}" class="inline">
+                            <input type="hidden" name="role" value="admin">
+                            <button class="text-red-500 hover:underline text-sm">
+                                Delete
+                            </button>
+                        </form>
+
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+
+</body>
+</html>
