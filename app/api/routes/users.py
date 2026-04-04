@@ -6,6 +6,7 @@ from datetime import datetime
 from app.db.database import get_db
 from app.crud import transaction as crud_transaction
 from fastapi.templating import Jinja2Templates
+from app.db.models import Transaction  # import your model
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/Templates")
@@ -35,7 +36,8 @@ def dashboard(
     db: Session = Depends(get_db)
 ):
     # ================= FETCH AND FILTER TRANSACTIONS =================
-    transactions_query = crud_transaction.get_transactions_query(db)
+
+    transactions_query = db.query(Transaction)
 
     # Apply filters dynamically
     if type:
