@@ -1,9 +1,8 @@
-from fastapi import FastAPI # type: ignore
-from app.db.database import engine
-from app.db.base import Base
+# app/main.py
+from fastapi import FastAPI
+from app.api.routes import users  # import only users.py for now
 
-app = FastAPI()
+app = FastAPI(title="FinVerse App")
 
-@app.on_event("startup")
-def startup():
-    Base.metadata.create_all(bind=engine)
+# Include the user router which has login and dashboard routes
+app.include_router(users.router)
