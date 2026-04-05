@@ -1,8 +1,10 @@
-# app/main.py
 from fastapi import FastAPI
-from app.api.routes import users  # import only users.py for now
+from starlette.middleware.sessions import SessionMiddleware
+from app.api.routes import users
 
-app = FastAPI(title="FinVerse App")
+app = FastAPI()
 
-# Include the user router which has login and dashboard routes
+# 🔥 THIS IS THE FIX
+app.add_middleware(SessionMiddleware, secret_key="super-secret-key")
+
 app.include_router(users.router)

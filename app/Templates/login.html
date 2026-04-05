@@ -20,8 +20,8 @@
             Select your role to continue
         </p>
 
-        <!-- Role Selection Form -->
-        <form action="/dashboard" method="get" class="space-y-4">
+        <!-- ✅ FIXED FORM -->
+        <form action="/login" method="post" class="space-y-4">
 
             <!-- Admin -->
             <button 
@@ -43,14 +43,14 @@
                 Login as Analyst
             </button>
 
-            <!-- Viewer -->
+            <!-- User -->
             <button 
                 type="submit" 
                 name="role" 
-                value="viewer"
+                value="user"
                 class="w-full py-3 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600 transition"
             >
-                Login as Viewer
+                Login as User
             </button>
 
         </form>
