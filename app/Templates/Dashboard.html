@@ -3,292 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <title>Finance Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'DM Sans', sans-serif; }
+        .mono { font-family: 'DM Mono', monospace; }
+
+        .badge-income {
+            background: #dcfce7; color: #16a34a;
+            padding: 2px 10px; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+        }
+        .badge-expense {
+            background: #fee2e2; color: #dc2626;
+            padding: 2px 10px; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+        }
+        .badge-role {
+            background: #eff6ff; color: #2563eb;
+            padding: 2px 10px; border-radius: 999px;
+            font-size: 0.75rem; font-weight: 600; text-transform: capitalize;
+        }
+
+        tr:hover td { background: #f8fafc; }
+
+        input[type="text"], input[type="number"], input[type="date"],
+        select, textarea {
+            font-family: 'DM Sans', sans-serif;
+        }
+    </style>
 </head>
+<body class="bg-slate-50 min-h-screen">
 
-<body class="bg-gray-100">
+<div class="max-w-7xl mx-auto px-6 py-8">
 
-<div class="max-w-7xl mx-auto p-6">
-
-    <!-- HEADER -->
-    <div class="flex justify-between items-center mb-6">
+    <!-- ─────────────────────── HEADER ─────────────────────── -->
+    <div class="flex justify-between items-center mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Finance Dashboard</h1>
-            <p class="text-sm text-gray-500">
-                Logged in as:
-                <span class="font-semibold capitalize text-blue-600">
-                    {{ role }}
-                </span>
+            <h1 class="text-3xl font-bold text-slate-800 tracking-tight">Finance Dashboard</h1>
+            <p class="text-sm text-slate-400 mt-1">
+                Logged in as <span class="badge-role">{{ role }}</span>
             </p>
         </div>
-
-        <a href="/logout" class="text-sm text-red-500 hover:underline">Logout</a>
+        <a href="/logout"
+           class="text-sm text-slate-500 border border-slate-200 px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors">
+            Logout
+        </a>
     </div>
 
-    <!-- SUMMARY -->
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white p-4 rounded-xl shadow">
-            <p>Total Income</p>
-            <h2 class="text-xl font-bold text-green-600">₹ {{ summary.total_income }}</h2>
+    <!-- ─────────────────────── SUMMARY CARDS ─────────────────────── -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Total Income</p>
+            <p class="mono text-2xl font-bold text-emerald-600">₹ {{ summary.total_income }}</p>
         </div>
-
-        <div class="bg-white p-4 rounded-xl shadow">
-            <p>Total Expense</p>
-            <h2 class="text-xl font-bold text-red-600">₹ {{ summary.total_expense }}</h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Total Expense</p>
+            <p class="mono text-2xl font-bold text-red-500">₹ {{ summary.total_expense }}</p>
         </div>
-
-        <div class="bg-white p-4 rounded-xl shadow">
-            <p>Balance</p>
-            <h2 class="text-xl font-bold text-blue-600">₹ {{ summary.balance }}</h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Balance</p>
+            <p class="mono text-2xl font-bold text-blue-600">₹ {{ summary.balance }}</p>
         </div>
     </div>
 
-    <!-- ACTION BAR -->
-    <div class="flex flex-wrap gap-3 mb-6">
-
+    <!-- ─────────────────────── ACTION BAR ─────────────────────── -->
+    <div class="flex flex-wrap gap-3 mb-8">
         {% if role in ["analyst", "admin"] %}
+        <!--
+            Export is a plain GET link — works perfectly with no JS.
+            NOTE: This route must be defined BEFORE /api/transactions/{id}
+            in your router, otherwise FastAPI matches "export" as the {id}.
+            Add: @router.get("/api/transactions/export") before the /{id} route.
+        -->
         <a href="/api/transactions/export"
-           class="bg-gray-800 text-white px-4 py-2 rounded text-sm hover:bg-gray-900">
-            Export CSV
+           class="inline-flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-900 transition-colors">
+            ↓ Export CSV
         </a>
         {% endif %}
 
         {% if role == "admin" %}
-        <form action="/api/transactions/import" method="post" enctype="multipart/form-data" class="flex items-center gap-2">
+        <!--
+            Import uses a dedicated form route /transactions/import (POST)
+            which redirects back to /dashboard after completion.
+            NOT the REST API route /api/transactions/import.
+        -->
+        <form action="/transactions/import" method="post" enctype="multipart/form-data"
+              class="flex items-center gap-2">
             <input type="file" name="file" accept=".csv"
-                   class="border p-2 rounded bg-white text-sm" required>
-
+                   class="border border-slate-200 p-2 rounded-lg bg-white text-sm text-slate-600" required>
             <button type="submit"
-                    class="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700">
-                Import CSV
+                    class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+                ↑ Import CSV
             </button>
         </form>
         {% endif %}
     </div>
 
-    <!-- ANALYTICS -->
+    <!-- ─────────────────────── ANALYTICS ─────────────────────── -->
     {% if role in ["analyst", "admin"] %}
-    <div class="grid grid-cols-2 gap-6 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
 
-        <div class="bg-white p-4 rounded-xl shadow">
-            <h2 class="font-semibold mb-3">Category Breakdown</h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h2 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Category Breakdown</h2>
             {% for c in category_breakdown %}
-            <div class="flex justify-between border-b py-1 text-sm">
-                <span>{{ c.category }}</span>
-                <span>₹ {{ c.total }}</span>
+            <div class="flex justify-between items-center border-b border-slate-50 py-2 text-sm">
+                <span class="text-slate-600">{{ c.category }}</span>
+                <span class="mono font-medium text-slate-800">₹ {{ c.total }}</span>
             </div>
+            {% else %}
+            <p class="text-slate-400 text-sm">No data yet.</p>
             {% endfor %}
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow">
-            <h2 class="font-semibold mb-3">Monthly Summary</h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+            <h2 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Monthly Summary</h2>
             {% for m in monthly_summary %}
-            <div class="flex justify-between border-b py-1 text-sm">
-                <span>{{ m.month }}</span>
-                <span>₹ {{ m.total }}</span>
+            <div class="flex justify-between items-center border-b border-slate-50 py-2 text-sm">
+                <span class="text-slate-600">{{ m.month }}</span>
+                <span class="mono font-medium text-slate-800">₹ {{ m.total }}</span>
             </div>
+            {% else %}
+            <p class="text-slate-400 text-sm">No data yet.</p>
             {% endfor %}
         </div>
 
     </div>
     {% endif %}
 
-    <!-- SEARCH + FILTER -->
+    <!-- ─────────────────────── SEARCH & FILTER ─────────────────────── -->
     {% if role in ["analyst", "admin"] %}
-    <div class="bg-white p-4 rounded-xl shadow mb-6">
-        <h2 class="font-semibold mb-3">Search & Filter</h2>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-8">
+        <h2 class="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">Search & Filter</h2>
+        <!--
+            GET form — appends filters as query params to /dashboard.
+            Works with no JS. All params are optional.
+        -->
+        <form method="get" action="/dashboard" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
 
-        <form method="get" action="/dashboard" class="grid grid-cols-6 gap-4">
+            <input type="text" name="search" placeholder="Search notes / category"
+                   value="{{ request.query_params.get('search', '') }}"
+                   class="border border-slate-200 p-2 rounded-lg text-sm col-span-2 sm:col-span-3 lg:col-span-6 focus:outline-none focus:ring-2 focus:ring-blue-300">
 
-            <input type="text" name="search" placeholder="Search by Category"
-                   value="{{ request.query_params.get('search','') }}"
-                   class="border p-2 rounded col-span-6">
-
-            <select name="type" class="border p-2 rounded">
+            <select name="type"
+                    class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                 <option value="">All Types</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
+                <option value="income"  {% if request.query_params.get('type') == 'income'  %}selected{% endif %}>Income</option>
+                <option value="expense" {% if request.query_params.get('type') == 'expense' %}selected{% endif %}>Expense</option>
             </select>
 
             <input type="text" name="category" placeholder="Category"
-                   value="{{ request.query_params.get('category','') }}"
-                   class="border p-2 rounded">
+                   value="{{ request.query_params.get('category', '') }}"
+                   class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
 
             <input type="date" name="start_date"
-                   value="{{ request.query_params.get('start_date','') }}"
-                   class="border p-2 rounded">
+                   value="{{ request.query_params.get('start_date', '') }}"
+                   class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
 
             <input type="date" name="end_date"
-                   value="{{ request.query_params.get('end_date','') }}"
-                   class="border p-2 rounded">
+                   value="{{ request.query_params.get('end_date', '') }}"
+                   class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
 
-            <!-- NEW: SORT -->
-            <select name="sort" class="border p-2 rounded">
+            <select name="sort"
+                    class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                 <option value="">Sort By</option>
-                <option value="date_desc">Newest</option>
-                <option value="date_asc">Oldest</option>
-                <option value="amount_desc">Highest</option>
-                <option value="amount_asc">Lowest</option>
+                <option value="date_desc"   {% if request.query_params.get('sort') == 'date_desc'   %}selected{% endif %}>Newest First</option>
+                <option value="date_asc"    {% if request.query_params.get('sort') == 'date_asc'    %}selected{% endif %}>Oldest First</option>
+                <option value="amount_desc" {% if request.query_params.get('sort') == 'amount_desc' %}selected{% endif %}>Highest Amount</option>
+                <option value="amount_asc"  {% if request.query_params.get('sort') == 'amount_asc'  %}selected{% endif %}>Lowest Amount</option>
             </select>
 
-            <button class="col-span-6 bg-blue-500 text-white py-2 rounded">
-                Apply Filters
-            </button>
+            <div class="col-span-2 sm:col-span-3 lg:col-span-6 flex gap-3">
+                <button type="submit"
+                        class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                    Apply Filters
+                </button>
+                <a href="/dashboard"
+                   class="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-500 hover:bg-slate-50 transition-colors">
+                    Clear
+                </a>
+            </div>
+
         </form>
     </div>
     {% endif %}
 
-    <!-- ADD TRANSACTION -->
+    <!-- ─────────────────────── ADD TRANSACTION ─────────────────────── -->
     {% if role == "admin" %}
-    <div class="bg-white p-4 rounded-xl shadow mb-6">
-        <h2 class="font-semibold mb-3">Add Transaction</h2>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-8">
+        <h2 class="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">Add Transaction</h2>
+        <!--
+            POST to /transactions/create (form route) — redirects back to /dashboard.
+        -->
+        <form method="post" action="/transactions/create"
+              class="grid grid-cols-2 sm:grid-cols-3 gap-4">
 
-        <form method="post" action="/api/transactions/form" class="grid grid-cols-2 gap-4">
+            <input type="number" step="0.01" name="amount" placeholder="Amount" required
+                   class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
 
-            <input type="number" step="0.01" name="amount" placeholder="Amount"
-                   class="border p-2 rounded" required>
-
-            <select name="type" class="border p-2 rounded" required>
+            <select name="type" required
+                    class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
             </select>
 
-            <input type="text" name="category" placeholder="Category"
-                   class="border p-2 rounded" required>
+            <input type="text" name="category" placeholder="Category" required
+                   class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
 
-            <input type="date" name="date" class="border p-2 rounded" required>
+            <input type="date" name="date" required
+                   class="border border-slate-200 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-300">
 
-            <input type="text" name="notes" placeholder="Notes"
-                   class="border p-2 rounded col-span-2">
+            <input type="text" name="notes" placeholder="Notes (optional)"
+                   class="border border-slate-200 p-2 rounded-lg text-sm col-span-2 focus:outline-none focus:ring-2 focus:ring-blue-300">
 
-            <button class="col-span-2 bg-green-500 text-white py-2 rounded">
-                Add Transaction
+            <button type="submit"
+                    class="col-span-2 sm:col-span-3 bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+                + Add Transaction
             </button>
+
         </form>
     </div>
     {% endif %}
 
-    <!-- TABLE -->
-<!-- TABLE -->
-<div class="bg-white p-4 rounded-xl shadow">
-    <h2 class="font-semibold mb-3">All Transactions</h2>
+    <!-- ─────────────────────── TRANSACTIONS TABLE ─────────────────────── -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+        <h2 class="text-sm font-semibold text-slate-700 mb-4 uppercase tracking-wider">All Transactions</h2>
 
-    <table class="w-full text-sm">
-        <thead>
-        <tr class="bg-gray-200 text-left">
-            <th class="p-2">Amount</th>
-            <th class="p-2">Type</th>
-            <th class="p-2">Category</th>
-            <th class="p-2">Date</th>
-            <th class="p-2">Notes</th>
-            <th class="p-2">Actions</th>
-        </tr>
-        </thead>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                <tr class="border-b border-slate-100">
+                    <th class="p-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Amount</th>
+                    <th class="p-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Type</th>
+                    <th class="p-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Category</th>
+                    <th class="p-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</th>
+                    <th class="p-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Notes</th>
+                    <th class="p-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Actions</th>
+                </tr>
+                </thead>
 
-        <tbody>
-        {% for t in transactions %}
-        <tr class="border-t">
+                <tbody>
+                {% for t in transactions %}
+                <tr class="border-b border-slate-50 transition-colors">
+                    <td class="p-3 mono font-medium text-slate-800">₹ {{ t.amount }}</td>
+                    <td class="p-3">
+                        {% if t.type == "income" %}
+                        <span class="badge-income">income</span>
+                        {% else %}
+                        <span class="badge-expense">expense</span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-slate-700">{{ t.category }}</td>
+                    <td class="p-3 mono text-slate-500">{{ t.date }}</td>
+                    <td class="p-3 text-slate-400 max-w-xs truncate">{{ t.notes }}</td>
+                    <td class="p-3">
+                        {% if role == "admin" %}
+                        <div class="flex items-center gap-3">
+                            <!--
+                                Edit is a plain GET link to a dedicated edit page.
+                                Route: GET /transactions/edit/{id}
+                                Returns edit_transaction.html with a pre-filled form.
+                                That form POSTs to /transactions/edit/{id}.
+                                This avoids putting a <form> inside a <tr> (invalid HTML).
+                            -->
+                            <a href="/transactions/edit/{{ t.id }}"
+                               class="text-blue-500 hover:text-blue-700 font-medium transition-colors">
+                                Edit
+                            </a>
 
-            {% if role == "admin" and request.query_params.get('edit_id')|int == t.id %}
-
-            <!-- EDIT MODE -->
-            <form method="post" action="/transactions/edit/{{ t.id }}">
-                <td class="p-2">
-                    <input type="number" step="0.01" name="amount"
-                           value="{{ t.amount }}"
-                           class="border p-1 rounded w-full" required>
-                </td>
-
-                <td class="p-2">
-                    <select name="type" class="border p-1 rounded w-full">
-                        <option value="income" {% if t.type == "income" %}selected{% endif %}>Income</option>
-                        <option value="expense" {% if t.type == "expense" %}selected{% endif %}>Expense</option>
-                    </select>
-                </td>
-
-                <td class="p-2">
-                    <input type="text" name="category"
-                           value="{{ t.category }}"
-                           class="border p-1 rounded w-full" required>
-                </td>
-
-                <td class="p-2">
-                    <input type="date" name="date"
-                           value="{{ t.date }}"
-                           class="border p-1 rounded w-full" required>
-                </td>
-
-                <td class="p-2">
-                    <input type="text" name="notes"
-                           value="{{ t.notes }}"
-                           class="border p-1 rounded w-full">
-                </td>
-
-                <td class="p-2 space-x-2">
-                    <button class="text-green-600 hover:underline text-sm">
-                        Save
-                    </button>
-            </form>
-
-                    <a href="/dashboard"
-                       class="text-gray-500 hover:underline text-sm">
-                        Cancel
-                    </a>
-                </td>
-
-            {% else %}
-
-            <!-- NORMAL VIEW -->
-            <td class="p-2">₹ {{ t.amount }}</td>
-            <td class="p-2">{{ t.type }}</td>
-            <td class="p-2">{{ t.category }}</td>
-            <td class="p-2">{{ t.date }}</td>
-            <td class="p-2">{{ t.notes }}</td>
-
-            <td class="p-2 space-x-2">
-                {% if role == "admin" %}
-
-                <!-- EDIT BUTTON -->
-                <a href="/dashboard?edit_id={{ t.id }}"
-                   class="text-blue-500 hover:underline text-sm">
-                    Edit
-                </a>
-
-                <!-- DELETE -->
-                <form method="post" action="/transactions/delete/{{ t.id }}" class="inline">
-                    <button class="text-red-500 hover:underline text-sm">
-                        Delete
-                    </button>
-                </form>
-
+                            <!--
+                                Delete uses a small standalone POST form.
+                                The form only contains a button — no <td> nesting issue
+                                because it's fully inside this single <td>.
+                            -->
+                            <form method="post" action="/transactions/delete/{{ t.id }}"
+                                  onsubmit="return confirm('Delete this transaction?')">
+                                <button type="submit"
+                                        class="text-red-400 hover:text-red-600 font-medium transition-colors">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <span class="text-slate-300 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
                 {% else %}
-                <span class="text-gray-400 text-xs">No Actions</span>
-                {% endif %}
-            </td>
-
-            {% endif %}
-
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-
-        <!-- PAGINATION -->
-        <div class="mt-4 flex justify-between text-sm">
-            {% set page = request.query_params.get('page', 1)|int %}
-
-            {% if page > 1 %}
-            <a href="?page={{ page - 1 }}" class="text-blue-500">Previous</a>
-            {% else %}
-            <span></span>
-            {% endif %}
-
-            <a href="?page={{ page + 1 }}" class="text-blue-500">Next</a>
+                <tr>
+                    <td colspan="6" class="p-6 text-center text-slate-400 text-sm">
+                        No transactions found.
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 
-</div>
+    <!-- ─────────────────────── PAGINATION ─────────────────────── -->
+    <!--
+        Pagination uses plain GET links.
+        Preserves existing filter params by reading them from query_params.
+        page param is the only thing that changes.
+    -->
+    <div class="mt-6 flex justify-between items-center text-sm">
+        {% set page = request.query_params.get('page', '1') | int %}
+        {% set q = request.query_params %}
 
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&type={{ q.get('type','') }}&category={{ q.get('category','') }}&start_date={{ q.get('start_date','') }}&end_date={{ q.get('end_date','') }}&search={{ q.get('search','') }}&sort={{ q.get('sort','') }}"
+           class="text-blue-500 hover:text-blue-700 font-medium transition-colors">
+            ← Previous
+        </a>
+        {% else %}
+        <span></span>
+        {% endif %}
+
+        <span class="text-slate-400 mono">Page {{ page }}</span>
+
+        <a href="?page={{ page + 1 }}&type={{ q.get('type','') }}&category={{ q.get('category','') }}&start_date={{ q.get('start_date','') }}&end_date={{ q.get('end_date','') }}&search={{ q.get('search','') }}&sort={{ q.get('sort','') }}"
+           class="text-blue-500 hover:text-blue-700 font-medium transition-colors">
+            Next →
+        </a>
+    </div>
+
+</div>
 </body>
 </html>

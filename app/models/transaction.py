@@ -1,3 +1,4 @@
+# app/models/transaction.py
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime, CheckConstraint, Index # type: ignore
 from datetime import datetime
 from app.db.database import Base
