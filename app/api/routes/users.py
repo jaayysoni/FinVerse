@@ -1,71 +1,127 @@
-# app/api/routes/users.py
-
-from fastapi import APIRouter, Depends, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, Query, UploadFile, File
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import datetime
+from sqlalchemy import func, or_
+from datetime import datetime, date
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field, validator
+import csv
+import io
 
 from app.db.database import get_db
 from app.db.models import Transaction
-from app.crud import transaction as crud_transaction
 
 router = APIRouter()
+templates = Jinja2Templates(directory="app/Templates")
 
-templates = Jinja2Templates(directory="app/templates")
+VALID_ROLES = ["admin", "analyst", "viewer"]
 
 
-# ================= HELPER =================
+# ================= SCHEMA =================
+class TransactionCreate(BaseModel):
+    amount: float = Field(gt=0)
+    type: str
+    category: str
+    date: date
+    notes: str = ""
+
+    @validator("type")
+    def validate_type(cls, v):
+        if v not in ["income", "expense"]:
+            raise ValueError("Type must be 'income' or 'expense'")
+        return v
+
+
+# ================= RBAC =================
+def get_role(request: Request):
+    role = request.session.get("role")
+    if not role:
+        raise HTTPException(status_code=401)
+
+    if role not in VALID_ROLES:
+        raise HTTPException(status_code=403)
+
+    return role
+
+
+# ================= HELPERS =================
 def calculate_summary(transactions):
-    total_income = sum(t.amount for t in transactions if t.type == "income")
-    total_expense = sum(t.amount for t in transactions if t.type == "expense")
+    income = sum(t.amount for t in transactions if t.type == "income")
+    expense = sum(t.amount for t in transactions if t.type == "expense")
+
     return {
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "balance": total_income - total_expense
+        "total_income": income,
+        "total_expense": expense,
+        "balance": income - expense
     }
 
 
-# ================= LOGIN PAGE =================
+# ================= LOGIN =================
 @router.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 
-# ================= LOGIN =================
 @router.post("/login")
 def login(request: Request, role: str = Form(...)):
-    # ✅ store role in session
+    if role not in VALID_ROLES:
+        raise HTTPException(status_code=400)
+
     request.session["role"] = role
-
-    # ✅ force redirect cleanly (NO query params)
-    response = RedirectResponse(url="/dashboard", status_code=303)
-    return response
+    return RedirectResponse("/dashboard", status_code=303)
 
 
-# ================= DASHBOARD =================
+@router.get("/logout")
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/")
+
+
+# ================= DASHBOARD (FIXED) =================
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    type: str = Query(None),
+    category: str = Query(None),
+    start_date: str = Query(None),
+    end_date: str = Query(None),
+    search: str = Query(None),
 ):
-    role = request.session.get("role")
+    role = get_role(request)
 
-    # ❌ If no role → back to login
-    if not role:
-        return RedirectResponse(url="/", status_code=303)
+    query = db.query(Transaction)
 
-    transactions = db.query(Transaction).order_by(Transaction.date.desc()).all()
+    # ✅ Filters (so UI works)
+    if type:
+        query = query.filter(Transaction.type == type)
 
-    summary = calculate_summary(transactions)
+    if category:
+        query = query.filter(Transaction.category.ilike(f"%{category}%"))
 
-    category_breakdown = db.query(
+    if start_date:
+        query = query.filter(Transaction.date >= datetime.strptime(start_date, "%Y-%m-%d"))
+
+    if end_date:
+        query = query.filter(Transaction.date <= datetime.strptime(end_date, "%Y-%m-%d"))
+
+    if search:
+        query = query.filter(
+            or_(
+                Transaction.category.ilike(f"%{search}%"),
+                Transaction.notes.ilike(f"%{search}%")
+            )
+        )
+
+    transactions = query.order_by(Transaction.date.desc()).all()
+
+    # ✅ Analytics
+    category_data = db.query(
         Transaction.category,
         func.sum(Transaction.amount).label("total")
     ).group_by(Transaction.category).all()
 
-    monthly_summary = db.query(
+    monthly_data = db.query(
         func.strftime("%Y-%m", Transaction.date).label("month"),
         func.sum(Transaction.amount).label("total")
     ).group_by("month").all()
@@ -76,17 +132,16 @@ def dashboard(
             "request": request,
             "role": role,
             "transactions": transactions,
-            "summary": summary,
-            "category_breakdown": category_breakdown,
-            "monthly_summary": monthly_summary,
-            "recent_transactions": transactions[:10]
+            "summary": calculate_summary(transactions),
+            "category_breakdown": category_data,
+            "monthly_summary": monthly_data
         }
     )
 
 
-# ================= CREATE =================
+# ================= FORM CREATE (FIX) =================
 @router.post("/transactions/create")
-def create_transaction(
+def create_transaction_form(
     request: Request,
     amount: float = Form(...),
     type: str = Form(...),
@@ -95,11 +150,12 @@ def create_transaction(
     notes: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    if request.session.get("role") != "admin":
-        return RedirectResponse(url="/dashboard", status_code=303)
+    role = get_role(request)
 
-    crud_transaction.create_transaction(
-        db=db,
+    if role != "admin":
+        raise HTTPException(status_code=403)
+
+    txn = Transaction(
         amount=amount,
         type=type,
         category=category,
@@ -107,56 +163,156 @@ def create_transaction(
         notes=notes
     )
 
-    return RedirectResponse(url="/dashboard", status_code=303)
+    db.add(txn)
+    db.commit()
+
+    return RedirectResponse("/dashboard", status_code=303)
 
 
-# ================= EDIT =================
-@router.get("/transactions/edit/{transaction_id}", response_class=HTMLResponse)
-def edit_transaction_form(transaction_id: int, request: Request, db: Session = Depends(get_db)):
-    if request.session.get("role") != "admin":
-        return RedirectResponse(url="/dashboard", status_code=303)
-
-    transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
-
-    return templates.TemplateResponse(
-        "EditTransaction.html",
-        {"request": request, "transaction": transaction}
-    )
-
-
-@router.post("/transactions/edit/{transaction_id}")
-def update_transaction(
+# ================= FORM DELETE (FIX) =================
+@router.post("/transactions/delete/{transaction_id}")
+def delete_transaction_form(
     transaction_id: int,
     request: Request,
-    amount: float = Form(...),
-    type: str = Form(...),
-    category: str = Form(...),
-    date: str = Form(...),
-    notes: str = Form(""),
     db: Session = Depends(get_db)
 ):
-    if request.session.get("role") != "admin":
-        return RedirectResponse(url="/dashboard", status_code=303)
+    role = get_role(request)
 
-    crud_transaction.update_transaction(
-        db=db,
-        transaction_id=transaction_id,
-        amount=amount,
-        type=type,
-        category=category,
-        date=datetime.strptime(date, "%Y-%m-%d").date(),
-        notes=notes
-    )
+    if role != "admin":
+        raise HTTPException(status_code=403)
 
-    return RedirectResponse(url="/dashboard", status_code=303)
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+
+    if txn:
+        db.delete(txn)
+        db.commit()
+
+    return RedirectResponse("/dashboard", status_code=303)
 
 
-# ================= DELETE =================
-@router.post("/transactions/delete/{transaction_id}")
-def delete_transaction(transaction_id: int, request: Request, db: Session = Depends(get_db)):
-    if request.session.get("role") != "admin":
-        return RedirectResponse(url="/dashboard", status_code=303)
+# ================= EXISTING API (UNCHANGED) =================
 
-    crud_transaction.delete_transaction(db, transaction_id)
+@router.get("/api/transactions")
+def get_transactions(
+    request: Request,
+    db: Session = Depends(get_db),
+    type: str = Query(None),
+    category: str = Query(None),
+    start_date: str = Query(None),
+    end_date: str = Query(None),
+    search: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, le=100)
+):
+    get_role(request)
 
-    return RedirectResponse(url="/dashboard", status_code=303)
+    query = db.query(Transaction)
+
+    if type:
+        query = query.filter(Transaction.type == type)
+
+    if category:
+        query = query.filter(Transaction.category.ilike(f"%{category}%"))
+
+    if start_date:
+        query = query.filter(Transaction.date >= datetime.strptime(start_date, "%Y-%m-%d").date())
+
+    if end_date:
+        query = query.filter(Transaction.date <= datetime.strptime(end_date, "%Y-%m-%d").date())
+
+    if search:
+        query = query.filter(
+            or_(
+                Transaction.category.ilike(f"%{search}%"),
+                Transaction.notes.ilike(f"%{search}%")
+            )
+        )
+
+    total = query.count()
+    data = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "data": data
+    }
+
+
+@router.post("/api/transactions")
+def create_transaction_api(request: Request, payload: TransactionCreate, db: Session = Depends(get_db)):
+    role = get_role(request)
+
+    if role != "admin":
+        raise HTTPException(status_code=403)
+
+    txn = Transaction(**payload.dict())
+    db.add(txn)
+    db.commit()
+
+    return {"message": "Transaction created"}
+
+
+@router.delete("/api/transactions/{transaction_id}")
+def delete_transaction_api(transaction_id: int, request: Request, db: Session = Depends(get_db)):
+    role = get_role(request)
+
+    if role != "admin":
+        raise HTTPException(status_code=403)
+
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+
+    if not txn:
+        raise HTTPException(status_code=404)
+
+    db.delete(txn)
+    db.commit()
+
+    return {"message": "Deleted successfully"}
+
+
+# ================= CSV =================
+@router.get("/api/transactions/export")
+def export_csv(request: Request, db: Session = Depends(get_db)):
+    get_role(request)
+
+    transactions = db.query(Transaction).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["ID", "Amount", "Type", "Category", "Date", "Notes"])
+
+    for t in transactions:
+        writer.writerow([t.id, t.amount, t.type, t.category, t.date, t.notes])
+
+    output.seek(0)
+
+    return StreamingResponse(output, media_type="text/csv")
+
+
+@router.post("/api/transactions/import")
+def import_csv(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    role = get_role(request)
+
+    if role != "admin":
+        raise HTTPException(status_code=403)
+
+    content = file.file.read().decode("utf-8")
+    reader = csv.DictReader(io.StringIO(content))
+
+    for row in reader:
+        try:
+            txn = Transaction(
+                amount=float(row["Amount"]),
+                type=row["Type"],
+                category=row["Category"],
+                date=datetime.strptime(row["Date"], "%Y-%m-%d").date(),
+                notes=row.get("Notes", "")
+            )
+            db.add(txn)
+        except:
+            continue
+
+    db.commit()
+
+    return RedirectResponse("/dashboard", status_code=303)

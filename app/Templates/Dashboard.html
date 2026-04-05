@@ -10,12 +10,10 @@
 
 <div class="max-w-7xl mx-auto p-6">
 
-    <!-- ================= HEADER ================= -->
+    <!-- HEADER -->
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">
-                Finance Dashboard
-            </h1>
+            <h1 class="text-2xl font-bold text-gray-800">Finance Dashboard</h1>
             <p class="text-sm text-gray-500">
                 Logged in as:
                 <span class="font-semibold capitalize text-blue-600">
@@ -24,12 +22,10 @@
             </p>
         </div>
 
-        <a href="/" class="text-sm text-red-500 hover:underline">
-            Logout
-        </a>
+        <a href="/logout" class="text-sm text-red-500 hover:underline">Logout</a>
     </div>
 
-    <!-- ================= SUMMARY ================= -->
+    <!-- SUMMARY -->
     <div class="grid grid-cols-3 gap-4 mb-6">
         <div class="bg-white p-4 rounded-xl shadow">
             <p>Total Income</p>
@@ -47,20 +43,18 @@
         </div>
     </div>
 
-    <!-- ================= ACTION BAR ================= -->
+    <!-- ACTION BAR -->
     <div class="flex flex-wrap gap-3 mb-6">
 
         {% if role in ["analyst", "admin"] %}
-        <!-- EXPORT CSV -->
-        <a href="/export/csv?type={{ request.query_params.get('type','') }}&category={{ request.query_params.get('category','') }}&start_date={{ request.query_params.get('start_date','') }}&end_date={{ request.query_params.get('end_date','') }}"
+        <a href="/api/transactions/export"
            class="bg-gray-800 text-white px-4 py-2 rounded text-sm hover:bg-gray-900">
             Export CSV
         </a>
         {% endif %}
 
         {% if role == "admin" %}
-        <!-- IMPORT CSV -->
-        <form action="/import/csv" method="post" enctype="multipart/form-data" class="flex items-center gap-2">
+        <form action="/api/transactions/import" method="post" enctype="multipart/form-data" class="flex items-center gap-2">
             <input type="file" name="file" accept=".csv"
                    class="border p-2 rounded bg-white text-sm" required>
 
@@ -70,10 +64,9 @@
             </button>
         </form>
         {% endif %}
-
     </div>
 
-    <!-- ================= ANALYTICS ================= -->
+    <!-- ANALYTICS -->
     {% if role in ["analyst", "admin"] %}
     <div class="grid grid-cols-2 gap-6 mb-6">
 
@@ -100,28 +93,21 @@
     </div>
     {% endif %}
 
-    <!-- ================= RECENT ================= -->
-    <div class="bg-white p-4 rounded-xl shadow mb-6">
-        <h2 class="font-semibold mb-3">Recent Transactions</h2>
-        {% for r in recent_transactions %}
-        <div class="flex justify-between border-b py-1 text-sm">
-            <span>{{ r.date }} - {{ r.category }}</span>
-            <span>₹ {{ r.amount }}</span>
-        </div>
-        {% endfor %}
-    </div>
-
-    <!-- ================= FILTER ================= -->
+    <!-- SEARCH + FILTER -->
     {% if role in ["analyst", "admin"] %}
     <div class="bg-white p-4 rounded-xl shadow mb-6">
-        <h2 class="font-semibold mb-3">Filter Transactions</h2>
+        <h2 class="font-semibold mb-3">Search & Filter</h2>
 
-        <form method="get" action="/dashboard" class="grid grid-cols-4 gap-4">
+        <form method="get" action="/dashboard" class="grid grid-cols-6 gap-4">
+
+            <input type="text" name="search" placeholder="Search..."
+                   value="{{ request.query_params.get('search','') }}"
+                   class="border p-2 rounded col-span-6">
 
             <select name="type" class="border p-2 rounded">
                 <option value="">All Types</option>
-                <option value="income" {% if request.query_params.get('type') == 'income' %}selected{% endif %}>Income</option>
-                <option value="expense" {% if request.query_params.get('type') == 'expense' %}selected{% endif %}>Expense</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
             </select>
 
             <input type="text" name="category" placeholder="Category"
@@ -136,26 +122,33 @@
                    value="{{ request.query_params.get('end_date','') }}"
                    class="border p-2 rounded">
 
-            <button class="col-span-4 bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+            <!-- NEW: SORT -->
+            <select name="sort" class="border p-2 rounded">
+                <option value="">Sort By</option>
+                <option value="date_desc">Newest</option>
+                <option value="date_asc">Oldest</option>
+                <option value="amount_desc">Highest</option>
+                <option value="amount_asc">Lowest</option>
+            </select>
+
+            <button class="col-span-6 bg-blue-500 text-white py-2 rounded">
                 Apply Filters
             </button>
-
         </form>
     </div>
     {% endif %}
 
-    <!-- ================= ADD (ADMIN ONLY) ================= -->
+    <!-- ADD TRANSACTION -->
     {% if role == "admin" %}
     <div class="bg-white p-4 rounded-xl shadow mb-6">
         <h2 class="font-semibold mb-3">Add Transaction</h2>
 
-        <form method="post" action="/transactions/create" class="grid grid-cols-2 gap-4">
+        <form method="post" action="/api/transactions/form" class="grid grid-cols-2 gap-4">
 
             <input type="number" step="0.01" name="amount" placeholder="Amount"
                    class="border p-2 rounded" required>
 
             <select name="type" class="border p-2 rounded" required>
-                <option value="">Select Type</option>
                 <option value="income">Income</option>
                 <option value="expense">Expense</option>
             </select>
@@ -168,20 +161,18 @@
             <input type="text" name="notes" placeholder="Notes"
                    class="border p-2 rounded col-span-2">
 
-            <button class="col-span-2 bg-green-500 text-white py-2 rounded hover:bg-green-600">
+            <button class="col-span-2 bg-green-500 text-white py-2 rounded">
                 Add Transaction
             </button>
-
         </form>
     </div>
     {% endif %}
 
-    <!-- ================= TABLE ================= -->
+    <!-- TABLE -->
     <div class="bg-white p-4 rounded-xl shadow">
         <h2 class="font-semibold mb-3">All Transactions</h2>
 
-        <table class="w-full border-collapse text-sm">
-
+        <table class="w-full text-sm">
             <thead>
             <tr class="bg-gray-200 text-left">
                 <th class="p-2">Amount</th>
@@ -204,15 +195,8 @@
 
                 <td class="p-2 space-x-2">
                     {% if role == "admin" %}
-                    <a href="/transactions/edit/{{ t.id }}"
-                       class="text-blue-500 hover:underline text-sm">
-                        Edit
-                    </a>
-
-                    <form method="post" action="/transactions/delete/{{ t.id }}" class="inline">
-                        <button class="text-red-500 hover:underline text-sm">
-                            Delete
-                        </button>
+                    <form method="post" action="/api/transactions/delete/{{ t.id }}" class="inline">
+                        <button class="text-red-500 text-sm">Delete</button>
                     </form>
                     {% else %}
                     <span class="text-gray-400 text-xs">No Actions</span>
@@ -221,8 +205,20 @@
             </tr>
             {% endfor %}
             </tbody>
-
         </table>
+
+        <!-- PAGINATION -->
+        <div class="mt-4 flex justify-between text-sm">
+            {% set page = request.query_params.get('page', 1)|int %}
+
+            {% if page > 1 %}
+            <a href="?page={{ page - 1 }}" class="text-blue-500">Previous</a>
+            {% else %}
+            <span></span>
+            {% endif %}
+
+            <a href="?page={{ page + 1 }}" class="text-blue-500">Next</a>
+        </div>
     </div>
 
 </div>
