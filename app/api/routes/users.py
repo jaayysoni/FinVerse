@@ -78,7 +78,6 @@ def logout(request: Request):
     return RedirectResponse("/")
 
 
-# ================= DASHBOARD (FIXED) =================
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,
@@ -88,12 +87,13 @@ def dashboard(
     start_date: str = Query(None),
     end_date: str = Query(None),
     search: str = Query(None),
+    sort: str = Query(None),  # ✅ ADD THIS
 ):
     role = get_role(request)
 
     query = db.query(Transaction)
 
-    # ✅ Filters (so UI works)
+    # ================= FILTERS =================
     if type:
         query = query.filter(Transaction.type == type)
 
@@ -101,10 +101,14 @@ def dashboard(
         query = query.filter(Transaction.category.ilike(f"%{category}%"))
 
     if start_date:
-        query = query.filter(Transaction.date >= datetime.strptime(start_date, "%Y-%m-%d"))
+        query = query.filter(
+            Transaction.date >= datetime.strptime(start_date, "%Y-%m-%d").date()
+        )
 
     if end_date:
-        query = query.filter(Transaction.date <= datetime.strptime(end_date, "%Y-%m-%d"))
+        query = query.filter(
+            Transaction.date <= datetime.strptime(end_date, "%Y-%m-%d").date()
+        )
 
     if search:
         query = query.filter(
@@ -114,9 +118,25 @@ def dashboard(
             )
         )
 
-    transactions = query.order_by(Transaction.date.desc()).all()
+    # ================= SORTING (FIXED) =================
+    if sort == "date_desc":
+        query = query.order_by(Transaction.date.desc())
 
-    # ✅ Analytics
+    elif sort == "date_asc":
+        query = query.order_by(Transaction.date.asc())
+
+    elif sort == "amount_desc":
+        query = query.order_by(Transaction.amount.desc())
+
+    elif sort == "amount_asc":
+        query = query.order_by(Transaction.amount.asc())
+
+    else:
+        query = query.order_by(Transaction.date.desc())  # default
+
+    transactions = query.all()
+
+    # ================= ANALYTICS =================
     category_data = db.query(
         Transaction.category,
         func.sum(Transaction.amount).label("total")
@@ -138,7 +158,6 @@ def dashboard(
             "monthly_summary": monthly_data
         }
     )
-
 
 # ================= FORM CREATE (FIX) =================
 @router.post("/transactions/create")
@@ -168,28 +187,6 @@ def create_transaction_form(
     db.commit()
 
     return RedirectResponse("/dashboard", status_code=303)
-
-
-# ================= FORM DELETE (FIX) =================
-@router.post("/transactions/delete/{transaction_id}")
-def delete_transaction_form(
-    transaction_id: int,
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    role = get_role(request)
-
-    if role != "admin":
-        raise HTTPException(status_code=403)
-
-    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
-
-    if txn:
-        db.delete(txn)
-        db.commit()
-
-    return RedirectResponse("/dashboard", status_code=303)
-
 
 # ================= EXISTING API (UNCHANGED) =================
 
