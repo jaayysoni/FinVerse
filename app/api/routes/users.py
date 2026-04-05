@@ -316,3 +316,25 @@ def import_csv(request: Request, file: UploadFile = File(...), db: Session = Dep
     db.commit()
 
     return RedirectResponse("/dashboard", status_code=303)
+
+# ================= FORM DELETE (UI SUPPORT) =================
+@router.post("/transactions/delete/{transaction_id}")
+def delete_transaction_form(
+    transaction_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    role = get_role(request)
+
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    db.delete(txn)
+    db.commit()
+
+    return RedirectResponse(url="/dashboard", status_code=303)

@@ -195,8 +195,10 @@
 
                 <td class="p-2 space-x-2">
                     {% if role == "admin" %}
-                    <form method="post" action="/api/transactions/delete/{{ t.id }}" class="inline">
-                        <button class="text-red-500 text-sm">Delete</button>
+                    <form method="post" action="/transactions/delete/{{ t.id }}" class="inline">
+                        <button class="text-red-500 hover:underline text-sm">
+                            Delete
+                        </button>
                     </form>
                     {% else %}
                     <span class="text-gray-400 text-xs">No Actions</span>
