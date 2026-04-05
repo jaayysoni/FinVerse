@@ -338,3 +338,37 @@ def delete_transaction_form(
     db.commit()
 
     return RedirectResponse(url="/dashboard", status_code=303)
+
+
+# ================= FORM EDIT (WORKING WITH DASHBOARD) =================
+@router.post("/transactions/edit/{transaction_id}")
+def edit_transaction_form(
+    transaction_id: int,
+    request: Request,
+    amount: float = Form(...),
+    type: str = Form(...),
+    category: str = Form(...),
+    date: str = Form(...),
+    notes: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    role = get_role(request)
+
+    if role != "admin":
+        raise HTTPException(status_code=403)
+
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+
+    if not txn:
+        raise HTTPException(status_code=404)
+
+    # ✅ update values
+    txn.amount = amount
+    txn.type = type
+    txn.category = category
+    txn.date = datetime.strptime(date, "%Y-%m-%d").date()
+    txn.notes = notes
+
+    db.commit()
+
+    return RedirectResponse("/dashboard", status_code=303)

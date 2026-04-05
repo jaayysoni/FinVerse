@@ -169,45 +169,110 @@
     {% endif %}
 
     <!-- TABLE -->
-    <div class="bg-white p-4 rounded-xl shadow">
-        <h2 class="font-semibold mb-3">All Transactions</h2>
+<!-- TABLE -->
+<div class="bg-white p-4 rounded-xl shadow">
+    <h2 class="font-semibold mb-3">All Transactions</h2>
 
-        <table class="w-full text-sm">
-            <thead>
-            <tr class="bg-gray-200 text-left">
-                <th class="p-2">Amount</th>
-                <th class="p-2">Type</th>
-                <th class="p-2">Category</th>
-                <th class="p-2">Date</th>
-                <th class="p-2">Notes</th>
-                <th class="p-2">Actions</th>
-            </tr>
-            </thead>
+    <table class="w-full text-sm">
+        <thead>
+        <tr class="bg-gray-200 text-left">
+            <th class="p-2">Amount</th>
+            <th class="p-2">Type</th>
+            <th class="p-2">Category</th>
+            <th class="p-2">Date</th>
+            <th class="p-2">Notes</th>
+            <th class="p-2">Actions</th>
+        </tr>
+        </thead>
 
-            <tbody>
-            {% for t in transactions %}
-            <tr class="border-t">
-                <td class="p-2">₹ {{ t.amount }}</td>
-                <td class="p-2">{{ t.type }}</td>
-                <td class="p-2">{{ t.category }}</td>
-                <td class="p-2">{{ t.date }}</td>
-                <td class="p-2">{{ t.notes }}</td>
+        <tbody>
+        {% for t in transactions %}
+        <tr class="border-t">
+
+            {% if role == "admin" and request.query_params.get('edit_id')|int == t.id %}
+
+            <!-- EDIT MODE -->
+            <form method="post" action="/transactions/edit/{{ t.id }}">
+                <td class="p-2">
+                    <input type="number" step="0.01" name="amount"
+                           value="{{ t.amount }}"
+                           class="border p-1 rounded w-full" required>
+                </td>
+
+                <td class="p-2">
+                    <select name="type" class="border p-1 rounded w-full">
+                        <option value="income" {% if t.type == "income" %}selected{% endif %}>Income</option>
+                        <option value="expense" {% if t.type == "expense" %}selected{% endif %}>Expense</option>
+                    </select>
+                </td>
+
+                <td class="p-2">
+                    <input type="text" name="category"
+                           value="{{ t.category }}"
+                           class="border p-1 rounded w-full" required>
+                </td>
+
+                <td class="p-2">
+                    <input type="date" name="date"
+                           value="{{ t.date }}"
+                           class="border p-1 rounded w-full" required>
+                </td>
+
+                <td class="p-2">
+                    <input type="text" name="notes"
+                           value="{{ t.notes }}"
+                           class="border p-1 rounded w-full">
+                </td>
 
                 <td class="p-2 space-x-2">
-                    {% if role == "admin" %}
-                    <form method="post" action="/transactions/delete/{{ t.id }}" class="inline">
-                        <button class="text-red-500 hover:underline text-sm">
-                            Delete
-                        </button>
-                    </form>
-                    {% else %}
-                    <span class="text-gray-400 text-xs">No Actions</span>
-                    {% endif %}
+                    <button class="text-green-600 hover:underline text-sm">
+                        Save
+                    </button>
+            </form>
+
+                    <a href="/dashboard"
+                       class="text-gray-500 hover:underline text-sm">
+                        Cancel
+                    </a>
                 </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+
+            {% else %}
+
+            <!-- NORMAL VIEW -->
+            <td class="p-2">₹ {{ t.amount }}</td>
+            <td class="p-2">{{ t.type }}</td>
+            <td class="p-2">{{ t.category }}</td>
+            <td class="p-2">{{ t.date }}</td>
+            <td class="p-2">{{ t.notes }}</td>
+
+            <td class="p-2 space-x-2">
+                {% if role == "admin" %}
+
+                <!-- EDIT BUTTON -->
+                <a href="/dashboard?edit_id={{ t.id }}"
+                   class="text-blue-500 hover:underline text-sm">
+                    Edit
+                </a>
+
+                <!-- DELETE -->
+                <form method="post" action="/transactions/delete/{{ t.id }}" class="inline">
+                    <button class="text-red-500 hover:underline text-sm">
+                        Delete
+                    </button>
+                </form>
+
+                {% else %}
+                <span class="text-gray-400 text-xs">No Actions</span>
+                {% endif %}
+            </td>
+
+            {% endif %}
+
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 
         <!-- PAGINATION -->
         <div class="mt-4 flex justify-between text-sm">
