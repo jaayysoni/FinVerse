@@ -372,3 +372,33 @@ def edit_transaction_form(
     db.commit()
 
     return RedirectResponse("/dashboard", status_code=303)
+
+
+# ================= FORM ADD (MATCHES DASHBOARD UI) =================
+@router.post("/api/transactions/form")
+def add_transaction_form(
+    request: Request,
+    amount: float = Form(...),
+    type: str = Form(...),
+    category: str = Form(...),
+    date: str = Form(...),
+    notes: str = Form(""),
+    db: Session = Depends(get_db)
+):
+    role = get_role(request)
+
+    if role != "admin":
+        raise HTTPException(status_code=403)
+
+    txn = Transaction(
+        amount=amount,
+        type=type,
+        category=category,
+        date=datetime.strptime(date, "%Y-%m-%d").date(),
+        notes=notes
+    )
+
+    db.add(txn)
+    db.commit()
+
+    return RedirectResponse("/dashboard", status_code=303)
