@@ -5,6 +5,7 @@ from sqlalchemy import func, or_
 from datetime import datetime, date
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field, validator
+from fastapi.responses import Response
 import csv
 import io
 
@@ -271,6 +272,7 @@ def delete_transaction_api(transaction_id: int, request: Request, db: Session = 
 
 
 # ================= CSV =================
+# ================= CSV EXPORT (FINAL WORKING) =================
 @router.get("/api/transactions/export")
 def export_csv(request: Request, db: Session = Depends(get_db)):
     get_role(request)
@@ -285,10 +287,16 @@ def export_csv(request: Request, db: Session = Depends(get_db)):
     for t in transactions:
         writer.writerow([t.id, t.amount, t.type, t.category, t.date, t.notes])
 
-    output.seek(0)
+    csv_data = output.getvalue()
+    output.close()
 
-    return StreamingResponse(output, media_type="text/csv")
-
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=project-by-jay-finance-data.csv"
+        }
+    )
 
 @router.post("/api/transactions/import")
 def import_csv(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
@@ -373,32 +381,3 @@ def edit_transaction_form(
 
     return RedirectResponse("/dashboard", status_code=303)
 
-
-# ================= FORM ADD (MATCHES DASHBOARD UI) =================
-@router.post("/api/transactions/form")
-def add_transaction_form(
-    request: Request,
-    amount: float = Form(...),
-    type: str = Form(...),
-    category: str = Form(...),
-    date: str = Form(...),
-    notes: str = Form(""),
-    db: Session = Depends(get_db)
-):
-    role = get_role(request)
-
-    if role != "admin":
-        raise HTTPException(status_code=403)
-
-    txn = Transaction(
-        amount=amount,
-        type=type,
-        category=category,
-        date=datetime.strptime(date, "%Y-%m-%d").date(),
-        notes=notes
-    )
-
-    db.add(txn)
-    db.commit()
-
-    return RedirectResponse("/dashboard", status_code=303)
