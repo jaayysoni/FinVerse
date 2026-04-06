@@ -14,7 +14,7 @@ RUN pip install --upgrade pip setuptools wheel
 RUN pip install -r requirements.txt
 
 # Copy everything else (including app/templates)
-COPY . .
+COPY app /app/app
 
 # Expose port
 EXPOSE 8000
