@@ -16,6 +16,9 @@ RUN pip install -r requirements.txt
 # Copy everything else (including app/templates)
 COPY app /app/app
 
+# Explicitly ensure templates exist
+COPY app/templates /app/app/templates
+
 # Expose port
 EXPOSE 8000
 
