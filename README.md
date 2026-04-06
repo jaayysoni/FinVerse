@@ -2,7 +2,7 @@
 
 > **FastAPI · Role-Based Access Control · REST API · Docker · AWS · SQLAlchemy**
 
-A full-stack financial management platform built as a backend engineering project — focused on real authorization, clean API design, and production-grade architecture. Every route is server-enforced. Every decision is documented.
+A full-stack financial management platform built as a backend engineering project — focused on real authorization, clean API design, and production-grade architecture. Every route is server-enforced. Designed with a focus on clear, explainable engineering decisions.
 
 **[Live Demo](https://finverse.jayysoni.com)** — no password required, select a role to explore
 
@@ -23,26 +23,60 @@ API docs with every endpoint testable: **http://localhost:8000/docs**
 
 ---
 
-## Screenshots
+
+## 📸 Screenshots
 
 ### Role Selection — Login Page
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/bb772b81-7c57-49aa-849e-d4ba7d4fed31" width="650"/>
+</p>
 
-
-<!-- Add screenshot: screenshots/login.png -->
-> *Screenshot coming soon*
+---
 
 ### Dashboard — Admin View
-<!-- Add screenshot: screenshots/dashboard-admin.png -->
-> *Screenshot coming soon*
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/000f4d6c-94f8-4243-bb80-8af9e8446675" width="650"/>
+  <br/><br/>
+  <img src="https://github.com/user-attachments/assets/9d6cd21e-691e-443e-b9f2-a0ea91d4ba1a" width="650"/>
+</p>
+
+---
 
 ### Dashboard — Analyst View
-<!-- Add screenshot: screenshots/dashboard-analyst.png -->
-> *Screenshot coming soon*
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/afd786f8-8407-4aad-84d8-7fe48cb1d4e1" width="650"/>
+  <br/><br/>
+  <img src="https://github.com/user-attachments/assets/8ef66aaa-c2ae-4a06-b1e8-371493715303" width="650"/>
+</p>
+
+---
+
+### Dashboard — User View
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/c2d13d5f-51d9-43c9-9d2b-f3f23e439ae4" width="650"/>
+  <br/><br/>
+  <img src="https://github.com/user-attachments/assets/4f549a53-1a7b-4176-be7f-b94e5cfa61c7" width="650"/>
+</p>
+
+---
+
+### ✅ Tests Passing
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/cf7b45ca-344b-4539-af36-b965792d621a" width="500"/>
+</p>
+
+---
 
 ### Swagger API Docs
-<!-- Add screenshot: screenshots/swagger.png -->
-> *Screenshot coming soon*
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d63c8e62-bd87-4623-b414-8cf097d30122" width="650"/>
+</p>
 
 ---
 
@@ -54,7 +88,7 @@ The core engineering problem it solves: **how do you build a system where author
 
 - Authorization is enforced at the **server level**, not just hidden in the UI
 - The API and browser UI share a **single enforcement layer** — no divergence possible
-- Data validation happens **before** any database call is made
+- Strong input validation using Pydantic for API routes, with consistent manual validation for form-based inputs
 - Both surfaces are protected by the **same two functions**
 
 ## At a Glance
@@ -66,7 +100,7 @@ The core engineering problem it solves: **how do you build a system where author
 - CSV import/export with fault tolerance
 - Fully containerized with Docker
 
-This is not a CRUD tutorial project. It is a focused exploration of how access control, API design, and clean architecture interact in a real system.
+This project goes beyond basic CRUD to focus on real-world backend challenges such as access control, API design, and clean architecture.
 
 ---
 
@@ -178,7 +212,7 @@ A decorator-based permission system or middleware layer were both considered. Ex
 
 ### SQLite Now, PostgreSQL Ready
 
-The ORM layer (SQLAlchemy) abstracts the database entirely. Swapping from SQLite to PostgreSQL is a single line change in `database.py` — the connection string. No queries, no models, no route logic changes. This is the value of using an ORM correctly.
+TThe database layer is abstracted via SQLAlchemy, allowing easy migration from SQLite to PostgreSQL. Most of the application code remains unchanged, though minor query adjustments (such as date formatting functions) are required for full compatibility.
 
 ---
 
@@ -367,7 +401,7 @@ FinVerse is deployed on **AWS EC2** using Docker and served via Uvicorn.
 - SQLite for demo deployment — PostgreSQL-ready with a single config change
 - Session management via signed itsdangerous cookies
 
-**Live:** [Live Project](https://your-live-url.aws.com)
+**Live:** [Live Project](https://finverse.jaayysoni.com)
 
 ### Running with Docker
 
@@ -443,7 +477,7 @@ finverse/
 │   ├── api/
 │   │   ├── deps.py               # Shared FastAPI dependencies
 │   │   └── routes/
-│   │       └── users.py   # All routes: auth, dashboard, UI forms, REST API
+│   │       └── users.py          # All routes: auth, dashboard, UI forms, REST API
 │   └── templates/
 │       ├── login.html            # Role selection login page
 │       └── dashboard.html        # Main dashboard — analytics, table, forms
@@ -456,7 +490,7 @@ finverse/
 └── README.md
 ```
 
-**`transactions.py`** is organized in this order:
+**`users.py`** is organized in this order:
 
 1. Constants — `VALID_ROLES`, `VALID_TYPES`
 2. Pydantic schemas — `TransactionCreate`, `TransactionUpdate`
