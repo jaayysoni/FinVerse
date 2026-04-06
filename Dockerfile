@@ -1,31 +1,23 @@
-# Use lightweight Python image
+# Dockerfile
+
+# Use Python 3.12 base image
 FROM python:3.12-slim
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies (SQLite for your DB)
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    sqlite3 \
-    libsqlite3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy only requirements first to leverage Docker cache
+# Copy only requirements first (for caching)
 COPY requirements.txt .
 
-# Upgrade pip & install Python dependencies
+# Install dependencies
 RUN pip install --upgrade pip setuptools wheel
 RUN pip install -r requirements.txt
 
-# Copy all app code
+# Copy everything else (including app/templates)
 COPY . .
 
-# If you have static files, copy them (optional)
-# COPY app/static ./app/static
-
-# Expose FastAPI port
+# Expose port
 EXPOSE 8000
 
-# Run the app with uvicorn
+# Run the app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
