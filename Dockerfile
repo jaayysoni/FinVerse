@@ -1,5 +1,3 @@
-# Dockerfile
-
 # Use Python 3.12 base image
 FROM python:3.12-slim
 
@@ -13,14 +11,11 @@ COPY requirements.txt .
 RUN pip install --upgrade pip setuptools wheel
 RUN pip install -r requirements.txt
 
-# Copy everything else (including app/templates)
-COPY app /app/app
-
-# Explicitly ensure templates exist
-COPY app/templates /app/app/templates
+# Copy everything under app (including templates)
+COPY app/ .
 
 # Expose port
 EXPOSE 8000
 
 # Run the app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
