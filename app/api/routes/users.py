@@ -12,7 +12,7 @@ from app.db.database import get_db
 from app.models.transaction import Transaction
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/Templates")
+templates = Jinja2Templates(directory="app/templates")
 
 # CONSTANTS
 
@@ -284,54 +284,6 @@ def form_edit_transaction(
 # Redirect back to dashboard after editing
     return RedirectResponse("/dashboard", status_code=303)
 
-
-@router.get("/dashboard", response_class=HTMLResponse)
-def dashboard(request: Request, edit_id: int = None, db: Session = Depends(get_db)):
-    require_admin(request)
-
-    all_transactions = db.query(Transaction).all()
-    summary = calculate_summary(all_transactions)
-
-    txn_to_edit = None
-    if edit_id:
-        txn_to_edit = db.query(Transaction).filter(Transaction.id == edit_id).first()
-
-    return templates.TemplateResponse("Dashboard.html", {
-        "request": request,
-        "transactions": all_transactions,
-        "summary": summary,
-        "edit_transaction": txn_to_edit,  # this will be None if not editing
-    })
-
-
-# REST API EDIT 
-@router.put("/api/transactions/{transaction_id}", summary="Update an existing transaction")
-def update_transaction(
-    transaction_id: int,
-    request: Request,
-    payload: TransactionUpdate,
-    db: Session = Depends(get_db),
-):
-    """
-    Fully updates a transaction. Admin only.
-    """
-    require_admin(request)
-
-    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    txn.amount = payload.amount
-    txn.type = payload.type
-    txn.category = payload.category
-    txn.date = payload.date
-    txn.notes = payload.notes
-
-    db.commit()
-    db.refresh(txn)
-
-    return {"message": "Transaction updated", "id": txn.id}
-
 # DELETE TRANSACTION 
 @router.post("/transactions/delete/{transaction_id}")
 def form_delete_transaction(
@@ -349,24 +301,6 @@ def form_delete_transaction(
     db.commit()
 
     # Redirect back to dashboard after deletion
-    return RedirectResponse("/dashboard", status_code=303)
-
-
-@router.post("/transactions/delete/{transaction_id}")
-def form_delete_transaction(
-    transaction_id: int,
-    request:        Request,
-    db:             Session = Depends(get_db),
-):
-    require_admin(request)
-
-    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    db.delete(txn)
-    db.commit()
-
     return RedirectResponse("/dashboard", status_code=303)
 
 
@@ -409,33 +343,6 @@ def form_import_csv(
     db.commit()
 
     return RedirectResponse("/dashboard", status_code=303)
-
-
-
-@router.get("/api/transactions", summary="List transactions with filters and pagination")
-def list_transactions(
-    request:    Request,
-    db:         Session = Depends(get_db),
-    type:       str = Query(None, description="Filter by 'income' or 'expense'"),
-    category:   str = Query(None, description="Partial match on category"),
-    start_date: str = Query(None, description="Format: YYYY-MM-DD"),
-    end_date:   str = Query(None, description="Format: YYYY-MM-DD"),
-    search:     str = Query(None, description="Search in category and notes"),
-    sort:       str = Query(None, description="date_desc | date_asc | amount_desc | amount_asc"),
-    page:       int = Query(1,  ge=1),
-    limit:      int = Query(10, le=100),
-):
-
-    get_role(request)
-
-    query = db.query(Transaction)
-    query = apply_filters(query, type, category, start_date, end_date, search)
-    query = apply_sorting(query, sort)
-
-    total = query.count()
-    data  = query.offset((page - 1) * limit).limit(limit).all()
-
-    return {"total": total, "page": page, "limit": limit, "data": data}
 
 
 
