@@ -4,7 +4,7 @@
 
 A full-stack financial management platform built as a backend engineering project — focused on real authorization, clean API design, and production-grade architecture. Every route is server-enforced. Every decision is documented.
 
-**[Live Demo](https://your-live-url.aws.com)** — no password required, select a role to explore
+**[Live Demo](https://finverse.jayysoni.com)** — no password required, select a role to explore
 
 ---
 
@@ -443,7 +443,7 @@ finverse/
 │   ├── api/
 │   │   ├── deps.py               # Shared FastAPI dependencies
 │   │   └── routes/
-│   │       └── transactions.py   # All routes: auth, dashboard, UI forms, REST API
+│   │       └── users.py   # All routes: auth, dashboard, UI forms, REST API
 │   └── templates/
 │       ├── login.html            # Role selection login page
 │       └── dashboard.html        # Main dashboard — analytics, table, forms
