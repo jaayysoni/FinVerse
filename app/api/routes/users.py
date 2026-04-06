@@ -14,17 +14,13 @@ from app.models.transaction import Transaction
 router = APIRouter()
 templates = Jinja2Templates(directory="app/Templates")
 
-# ─────────────────────────────────────────
 # CONSTANTS
-# ─────────────────────────────────────────
 
 VALID_ROLES = ["admin", "analyst", "viewer"]
 VALID_TYPES = ["income", "expense"]
 
 
-# ─────────────────────────────────────────
 # SCHEMAS (Pydantic)
-# ─────────────────────────────────────────
 
 class TransactionCreate(BaseModel):
     amount: float = Field(gt=0, description="Must be a positive number")
@@ -54,9 +50,7 @@ class TransactionUpdate(BaseModel):
         return v
 
 
-# ─────────────────────────────────────────
 # RBAC HELPERS
-# ─────────────────────────────────────────
 
 def get_role(request: Request) -> str:
     """
@@ -80,9 +74,7 @@ def require_admin(request: Request) -> str:
     return role
 
 
-# ─────────────────────────────────────────
 # ANALYTICS HELPERS
-# ─────────────────────────────────────────
 
 def calculate_summary(transactions: list) -> dict:
     """
@@ -145,9 +137,7 @@ def apply_sorting(query, sort: str):
     return query.order_by(order)
 
 
-# ─────────────────────────────────────────
 # AUTH ROUTES
-# ─────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
@@ -168,9 +158,7 @@ def logout(request: Request):
     return RedirectResponse("/")
 
 
-# ─────────────────────────────────────────
 # DASHBOARD ROUTE
-# ─────────────────────────────────────────
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
@@ -224,15 +212,11 @@ def dashboard(
             "total": total,
             "page": page,
             "limit": limit,
-            "edit_transaction": txn_to_edit,  # pass editable transaction
+            "edit_transaction": txn_to_edit,
         },
     )
 
-# ═══════════════════════════════════════════════════════════════════════
 # UI FORM ROUTES
-# Defined BEFORE the REST API routes so FastAPI does not match path
-# segments like "export", "import", "edit" as integer {transaction_id}.
-# ═══════════════════════════════════════════════════════════════════════
 
 @router.post("/transactions/create")
 def form_create_transaction(
@@ -263,11 +247,7 @@ def form_create_transaction(
 
     return RedirectResponse("/dashboard", status_code=303)
 
-
-# FIX 1 ─ GET /transactions/edit/{id}
-# Was completely missing before. "Edit" link was hitting a 404.
-# Serves the standalone edit_transaction.html page pre-filled with data.
-# -------------------- DASHBOARD FORM EDIT --------------------
+#  DASHBOARD FORM EDIT 
 @router.post("/transactions/edit/{transaction_id}")
 def form_edit_transaction(
     transaction_id: int,
@@ -301,7 +281,7 @@ def form_edit_transaction(
     txn.notes = notes
     db.commit()
 
-    # Redirect back to dashboard after editing
+# Redirect back to dashboard after editing
     return RedirectResponse("/dashboard", status_code=303)
 
 
@@ -324,7 +304,7 @@ def dashboard(request: Request, edit_id: int = None, db: Session = Depends(get_d
     })
 
 
-# -------------------- REST API EDIT --------------------
+# REST API EDIT 
 @router.put("/api/transactions/{transaction_id}", summary="Update an existing transaction")
 def update_transaction(
     transaction_id: int,
@@ -352,7 +332,7 @@ def update_transaction(
 
     return {"message": "Transaction updated", "id": txn.id}
 
-# -------------------- DELETE TRANSACTION --------------------
+# DELETE TRANSACTION 
 @router.post("/transactions/delete/{transaction_id}")
 def form_delete_transaction(
     transaction_id: int,
@@ -390,9 +370,7 @@ def form_delete_transaction(
     return RedirectResponse("/dashboard", status_code=303)
 
 
-# FIX 2 ─ POST /transactions/import
-# Was completely missing before. Dashboard form posts here, not to /api/.
-# Redirects back to /dashboard after import (no JSON response).
+
 @router.post("/transactions/import")
 def form_import_csv(
     request: Request,
@@ -433,10 +411,6 @@ def form_import_csv(
     return RedirectResponse("/dashboard", status_code=303)
 
 
-# ═══════════════════════════════════════════════════════════════════════
-# REST API — TRANSACTIONS (CRUD)
-# For Postman / Swagger / external API clients only.
-# ═══════════════════════════════════════════════════════════════════════
 
 @router.get("/api/transactions", summary="List transactions with filters and pagination")
 def list_transactions(
@@ -451,10 +425,7 @@ def list_transactions(
     page:       int = Query(1,  ge=1),
     limit:      int = Query(10, le=100),
 ):
-    """
-    Returns a paginated list of transactions.
-    Available to all roles (viewer, analyst, admin).
-    """
+
     get_role(request)
 
     query = db.query(Transaction)
@@ -467,20 +438,14 @@ def list_transactions(
     return {"total": total, "page": page, "limit": limit, "data": data}
 
 
-# FIX 3 ─ /api/transactions/export and /api/transactions/import
-# Must be defined BEFORE /api/transactions/{transaction_id}.
-# If /{transaction_id} comes first, FastAPI matches "export" / "import"
-# as the integer path param → 422 Unprocessable Entity.
+
 
 @router.get("/api/transactions/export", summary="Export all transactions as CSV")
 def export_csv(
     request: Request,
     db:      Session = Depends(get_db),
 ):
-    """
-    Downloads all transactions as a CSV file.
-    Available to all roles.
-    """
+
     get_role(request)
 
     transactions = db.query(Transaction).all()
@@ -537,16 +502,14 @@ def import_csv(
     return {"message": "Import complete", "imported": imported, "skipped": skipped}
 
 
-# /{transaction_id} is LAST — after all fixed-path routes above
+
 @router.get("/api/transactions/{transaction_id}", summary="Get a single transaction by ID")
 def get_transaction(
     transaction_id: int,
     request:        Request,
     db:             Session = Depends(get_db),
 ):
-    """
-    Returns a single transaction. Available to all roles.
-    """
+
     get_role(request)
 
     txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
@@ -562,9 +525,7 @@ def create_transaction(
     payload: TransactionCreate,
     db:      Session = Depends(get_db),
 ):
-    """
-    Creates a new transaction. Admin only.
-    """
+
     require_admin(request)
 
     txn = Transaction(**payload.dict())
@@ -582,9 +543,7 @@ def update_transaction(
     payload:        TransactionUpdate,
     db:             Session = Depends(get_db),
 ):
-    """
-    Fully updates a transaction. Admin only.
-    """
+
     require_admin(request)
 
     txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
@@ -609,9 +568,7 @@ def delete_transaction(
     request:        Request,
     db:             Session = Depends(get_db),
 ):
-    """
-    Deletes a transaction. Admin only.
-    """
+
     require_admin(request)
 
     txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
@@ -624,19 +581,14 @@ def delete_transaction(
     return {"message": "Transaction deleted", "id": transaction_id}
 
 
-# ─────────────────────────────────────────
 # REST API — ANALYTICS / SUMMARY
-# ─────────────────────────────────────────
 
 @router.get("/api/summary", summary="Get financial summary (income, expense, balance)")
 def get_summary(
     request: Request,
     db:      Session = Depends(get_db),
 ):
-    """
-    Returns total income, total expense, and current balance.
-    Available to all roles.
-    """
+
     get_role(request)
     return calculate_summary(db.query(Transaction).all())
 
@@ -646,10 +598,7 @@ def get_category_breakdown(
     request: Request,
     db:      Session = Depends(get_db),
 ):
-    """
-    Returns total amounts grouped by category.
-    Available to analyst and admin roles.
-    """
+
     role = get_role(request)
     if role not in ["analyst", "admin"]:
         raise HTTPException(status_code=403, detail="Analyst or Admin access required")
@@ -667,10 +616,7 @@ def get_monthly_summary(
     request: Request,
     db:      Session = Depends(get_db),
 ):
-    """
-    Returns total amounts grouped by month (YYYY-MM).
-    Available to analyst and admin roles.
-    """
+
     role = get_role(request)
     if role not in ["analyst", "admin"]:
         raise HTTPException(status_code=403, detail="Analyst or Admin access required")
@@ -688,10 +634,7 @@ def get_recent_transactions(
     request: Request,
     db:      Session = Depends(get_db),
 ):
-    """
-    Returns the 10 most recent transactions by date.
-    Available to all roles.
-    """
+
     get_role(request)
     return db.query(Transaction).order_by(Transaction.date.desc()).limit(10).all()
 

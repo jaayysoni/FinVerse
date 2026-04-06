@@ -1,7 +1,6 @@
 #app/api/deps.py
 from app.db.database import SessionLocal
 
-# Dependency
 def get_db():
     db = SessionLocal()
     try:
