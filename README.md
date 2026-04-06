@@ -4,14 +4,14 @@
 
 A full-stack financial management platform built as a backend engineering project — focused on real authorization, clean API design, and production-grade architecture. Every route is server-enforced. Every decision is documented.
 
-🔗 **[Live Demo](https://your-live-url.aws.com)** — no password required, select a role to explore
+**[Live Demo](https://your-live-url.aws.com)** — no password required, select a role to explore
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
-git clone https://github.com/your-username/finverse.git
+git clone https://github.com/jaayysoni/finverse.git
 cd finverse
 pip install -r requirements.txt
 uvicorn app.main:app --reload
@@ -23,9 +23,12 @@ API docs with every endpoint testable: **http://localhost:8000/docs**
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 ### Role Selection — Login Page
+
+
+
 <!-- Add screenshot: screenshots/login.png -->
 > *Screenshot coming soon*
 
@@ -43,7 +46,7 @@ API docs with every endpoint testable: **http://localhost:8000/docs**
 
 ---
 
-## 🎯 Why This Project Exists
+## Why This Project Exists
 
 Most personal finance tools are either too simple (a spreadsheet) or too heavy (a SaaS product with 40 features you don't need). FinVerse is intentionally in the middle — clean, fast, and focused.
 
@@ -54,7 +57,7 @@ The core engineering problem it solves: **how do you build a system where author
 - Data validation happens **before** any database call is made
 - Both surfaces are protected by the **same two functions**
 
-## 🧾 At a Glance
+## At a Glance
 
 - Backend-focused full-stack finance platform
 - Role-Based Access Control (admin / analyst / viewer)
@@ -67,7 +70,7 @@ This is not a CRUD tutorial project. It is a focused exploration of how access c
 
 ---
 
-## 🔐 Role-Based Access Control
+## Role-Based Access Control
 
 Three roles. One enforcement layer. No workarounds.
 
@@ -131,7 +134,7 @@ HTTP 403 Forbidden
 
 ---
 
-## 🏗️ Architecture and Design Decisions
+## Architecture and Design Decisions
 
 ### Two Surfaces, One Enforcement Layer
 
@@ -179,7 +182,7 @@ The ORM layer (SQLAlchemy) abstracts the database entirely. Swapping from SQLite
 
 ---
 
-## ✨ Features
+## Features
 
 ### Dashboard (Browser Interface)
 
@@ -206,7 +209,7 @@ The ORM layer (SQLAlchemy) abstracts the database entirely. Swapping from SQLite
 
 ---
 
-## 📡 REST API Reference
+## REST API Reference
 
 All routes require an active session. Log in via the browser or include the session cookie in your requests. Full interactive Swagger UI available at `/docs`.
 
@@ -304,7 +307,7 @@ GET /api/transactions?type=expense&search=rent&sort=amount_desc&page=1&limit=5
 
 ---
 
-## ✅ Data Validation
+## Data Validation
 
 Every write operation — whether from the browser form or the REST API — goes through Pydantic validation before any database call.
 
@@ -340,10 +343,10 @@ Rows with unrecognized type, non-positive amount, missing required columns, or m
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
-pytest -v
+PYTHONPATH=. pytest -v
 ```
 
 The test suite covers:
@@ -355,16 +358,16 @@ The test suite covers:
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
-FinVerse is deployed on **AWS** using Docker and served via Uvicorn.
+FinVerse is deployed on **AWS EC2** using Docker and served via Uvicorn.
 
 - Containerized with Docker for a consistent, reproducible environment
 - Served via Uvicorn (ASGI, production-grade)
 - SQLite for demo deployment — PostgreSQL-ready with a single config change
 - Session management via signed itsdangerous cookies
 
-**Live:** [your-live-url.aws.com](https://your-live-url.aws.com)
+**Live:** [Live Project](https://your-live-url.aws.com)
 
 ### Running with Docker
 
@@ -397,7 +400,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 No environment variables are required for local setup.
 
@@ -410,7 +413,7 @@ For production deployments:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology | Reason |
 |---|---|---|
@@ -427,7 +430,7 @@ For production deployments:
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 finverse/
@@ -466,7 +469,7 @@ finverse/
 
 ---
 
-## 📦 Notes
+## Notes
 
 The following are excluded from version control:
 
@@ -480,7 +483,7 @@ finance.db
 
 ---
 
-## 🔭 What I Would Build Next
+## What I Would Build Next
 
 These are the concrete next steps to make this production-ready:
 
@@ -498,10 +501,10 @@ These are the concrete next steps to make this production-ready:
 
 ---
 
-## 👤 Author
+## Author
 
 **Jay Soni**
 
 Built as a backend engineering assessment focused on role-based access control, REST API design, and full-stack FastAPI architecture.
 
-[GitHub](https://github.com/your-username) · [LinkedIn](https://linkedin.com/in/your-profile) · [Live Demo](https://your-live-url.aws.com)
+[GitHub](https://github.com/jaayysoni) · [LinkedIn](https://linkedin.com/in/jaayysoni) · [Live Demo](https://finverse.jaayysoni.com)
