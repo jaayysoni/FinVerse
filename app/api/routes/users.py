@@ -174,24 +174,26 @@ def logout(request: Request):
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
-    request:    Request,
-    db:         Session = Depends(get_db),
-    type:       str = Query(None),
-    category:   str = Query(None),
+    request: Request,
+    db: Session = Depends(get_db),
+    edit_id: int = Query(None),
+    type: str = Query(None),
+    category: str = Query(None),
     start_date: str = Query(None),
-    end_date:   str = Query(None),
-    search:     str = Query(None),
-    sort:       str = Query(None),
-    page:       int = Query(1, ge=1),
-    limit:      int = Query(10, ge=1, le=100),
+    end_date: str = Query(None),
+    search: str = Query(None),
+    sort: str = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
 ):
     role = get_role(request)
 
+    # Base query
     query = db.query(Transaction)
     query = apply_filters(query, type, category, start_date, end_date, search)
     query = apply_sorting(query, sort)
 
-    total        = query.count()
+    total = query.count()
     transactions = query.offset((page - 1) * limit).limit(limit).all()
 
     category_data = db.query(
@@ -204,24 +206,27 @@ def dashboard(
         func.sum(Transaction.amount).label("total"),
     ).group_by("month").all()
 
-    # Summary always over ALL transactions, not just the current page
     all_transactions = db.query(Transaction).all()
+
+    txn_to_edit = None
+    if edit_id:
+        txn_to_edit = db.query(Transaction).filter(Transaction.id == edit_id).first()
 
     return templates.TemplateResponse(
         "Dashboard.html",
         {
-            "request":            request,
-            "role":               role,
-            "transactions":       transactions,
-            "summary":            calculate_summary(all_transactions),
+            "request": request,
+            "role": role,
+            "transactions": transactions,
+            "summary": calculate_summary(all_transactions),
             "category_breakdown": category_data,
-            "monthly_summary":    monthly_data,
-            "total":              total,
-            "page":               page,
-            "limit":              limit,
+            "monthly_summary": monthly_data,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "edit_transaction": txn_to_edit,  # pass editable transaction
         },
     )
-
 
 # ═══════════════════════════════════════════════════════════════════════
 # UI FORM ROUTES
@@ -262,35 +267,22 @@ def form_create_transaction(
 # FIX 1 ─ GET /transactions/edit/{id}
 # Was completely missing before. "Edit" link was hitting a 404.
 # Serves the standalone edit_transaction.html page pre-filled with data.
-@router.get("/transactions/edit/{transaction_id}", response_class=HTMLResponse)
-def form_edit_page(
-    transaction_id: int,
-    request:        Request,
-    db:             Session = Depends(get_db),
-):
-    require_admin(request)
-
-    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
-    if not txn:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-
-    return templates.TemplateResponse(
-        "edit_transaction.html",
-        {"request": request, "txn": txn},
-    )
-
-
+# -------------------- DASHBOARD FORM EDIT --------------------
 @router.post("/transactions/edit/{transaction_id}")
 def form_edit_transaction(
     transaction_id: int,
-    request:        Request,
-    amount:         float = Form(...),
-    type:           str   = Form(...),
-    category:       str   = Form(...),
-    date:           str   = Form(...),
-    notes:          str   = Form(""),
-    db:             Session = Depends(get_db),
+    request: Request,
+    amount: float = Form(...),
+    type: str = Form(...),
+    category: str = Form(...),
+    date: str = Form(...),
+    notes: str = Form(""),
+    db: Session = Depends(get_db),
 ):
+    """
+    Edit a transaction via the dashboard form.
+    Admin only.
+    """
     require_admin(request)
 
     txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
@@ -302,13 +294,81 @@ def form_edit_transaction(
     if amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")
 
-    txn.amount   = amount
-    txn.type     = type
+    txn.amount = amount
+    txn.type = type
     txn.category = category
-    txn.date     = datetime.strptime(date, "%Y-%m-%d").date()
-    txn.notes    = notes
+    txn.date = datetime.strptime(date, "%Y-%m-%d").date()
+    txn.notes = notes
     db.commit()
 
+    # Redirect back to dashboard after editing
+    return RedirectResponse("/dashboard", status_code=303)
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request, edit_id: int = None, db: Session = Depends(get_db)):
+    require_admin(request)
+
+    all_transactions = db.query(Transaction).all()
+    summary = calculate_summary(all_transactions)
+
+    txn_to_edit = None
+    if edit_id:
+        txn_to_edit = db.query(Transaction).filter(Transaction.id == edit_id).first()
+
+    return templates.TemplateResponse("Dashboard.html", {
+        "request": request,
+        "transactions": all_transactions,
+        "summary": summary,
+        "edit_transaction": txn_to_edit,  # this will be None if not editing
+    })
+
+
+# -------------------- REST API EDIT --------------------
+@router.put("/api/transactions/{transaction_id}", summary="Update an existing transaction")
+def update_transaction(
+    transaction_id: int,
+    request: Request,
+    payload: TransactionUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Fully updates a transaction. Admin only.
+    """
+    require_admin(request)
+
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    txn.amount = payload.amount
+    txn.type = payload.type
+    txn.category = payload.category
+    txn.date = payload.date
+    txn.notes = payload.notes
+
+    db.commit()
+    db.refresh(txn)
+
+    return {"message": "Transaction updated", "id": txn.id}
+
+# -------------------- DELETE TRANSACTION --------------------
+@router.post("/transactions/delete/{transaction_id}")
+def form_delete_transaction(
+    transaction_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    require_admin(request)
+
+    txn = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    db.delete(txn)
+    db.commit()
+
+    # Redirect back to dashboard after deletion
     return RedirectResponse("/dashboard", status_code=303)
 
 
@@ -634,3 +694,4 @@ def get_recent_transactions(
     """
     get_role(request)
     return db.query(Transaction).order_by(Transaction.date.desc()).limit(10).all()
+
