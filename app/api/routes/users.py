@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from pydantic import BaseModel, Field, validator
 from datetime import datetime, date
+from pathlib import Path
 import csv
 import io
 
@@ -12,7 +13,9 @@ from app.db.database import get_db
 from app.models.transaction import Transaction
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+
+BASE_DIR = Path(__file__).parent.parent.parent  # goes from app/api/routes/users.py → app/
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # CONSTANTS
 
