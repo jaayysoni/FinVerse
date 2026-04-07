@@ -4,7 +4,7 @@
 
 A full-stack financial management platform built as a backend engineering project — focused on real authorization, clean API design, and production-grade architecture. Every route is server-enforced. Designed with a focus on clear, explainable engineering decisions.
 
-**[Live Demo](https://finverse.jayysoni.com)** — no password required, select a role to explore
+**[Live Demo](https://finverse.jaayysoni.com)** — no password required, select a role to explore
 
 ---
 
