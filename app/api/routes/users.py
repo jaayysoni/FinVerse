@@ -15,7 +15,7 @@ from app.models.transaction import Transaction
 router = APIRouter()
 
 BASE_DIR = Path(__file__).parent.parent.parent  # goes from app/api/routes/users.py → app/
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 # CONSTANTS
 

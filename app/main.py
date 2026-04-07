@@ -12,7 +12,3 @@ app.add_middleware(SessionMiddleware, secret_key="super-secret-key")
 
 # Include routes
 app.include_router(users.router)
-
-# Configure templates
-BASE_DIR = Path(__file__).parent
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
